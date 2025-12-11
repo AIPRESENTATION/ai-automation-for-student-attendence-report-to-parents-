@@ -1,0 +1,122 @@
+{
+  "name": "Attendance WhatsApp Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "watch",
+        "sheetId": "1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
+        "sheetName": "Sheet1"
+      },
+      "id": "GoogleSheetsTrigger",
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "credentials": {
+        "googleApi": "Google Sheets Account"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json['Status']}}",
+              "operation": "equal",
+              "value2": "Absent"
+            }
+          ]
+        }
+      },
+      "id": "IfAbsent",
+      "name": "IF Absent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/123456789/messages",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "options": {},
+        "body": {
+          "messaging_product": "whatsapp",
+          "to": "={{$json['WhatsApp Number']}}",
+          "type": "text",
+          "text": {
+            "body": "Hello {{$json['Name']}}, you were marked absent today. Please contact your teacher if this is incorrect."
+          }
+        }
+      },
+      "id": "WhatsAppMessage",
+      "name": "WhatsApp Cloud API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Cloud API"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
+        "sheetName": "Log",
+        "options": {},
+        "valueInputMode": "RAW",
+        "data": [
+          [
+            "={{$json['Name']}}",
+            "={{$json['Status']}}",
+            "={{$json['WhatsApp Number']}}",
+            "={{$json['Date'] || $now}}",
+            "Message Sent"
+          ]
+        ]
+      },
+      "id": "LogMessage",
+      "name": "Log in Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "credentials": {
+        "googleApi": "Google Sheets Account"
+      }
+    }
+  ],
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "IF Absent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Absent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Cloud API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Cloud API": {
+      "main": [
+        [
+          {
+            "node": "Log in Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

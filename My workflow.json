@@ -1,0 +1,154 @@
+{
+  "name": "Attendance WhatsApp Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      },
+      "id": "dailyTrigger",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sheetId": "YOUR_SHEET_ID",
+        "range": "A:C"
+      },
+      "id": "getAttendance",
+      "name": "Get Attendance",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json['Attendence status']}}",
+              "operation": "equal",
+              "value2": "absent"
+            }
+          ]
+        }
+      },
+      "id": "filterAbsent",
+      "name": "Filter Absent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "splitStudents",
+      "name": "Split Students",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_ID",
+        "recipientPhoneNumber": "={{$json['Phone']}}",
+        "textBody": "Hello {{$json['Name']}}, you were marked absent today. Please contact your teacher if this is incorrect.",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "id": "sendWhatsApp",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "dailyTrigger": {
+      "main": [
+        [
+          {
+            "node": "getAttendance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getAttendance": {
+      "main": [
+        [
+          {
+            "node": "filterAbsent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filterAbsent": {
+      "main": [
+        [
+          {
+            "node": "splitStudents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "splitStudents": {
+      "main": [
+        [
+          {
+            "node": "sendWhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  ],
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}
